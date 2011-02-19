@@ -1,0 +1,23 @@
+\           // |–––––||  ––––||––––    ––––//   ||     |     ––     |  \\V  |  \\V   –––––––   ||     |
+\          //  |–––––||   –––||–––    / –––\\   ||>>>>>\  |      |  ^\   V  ^\   V   –––––     ||>>>>>\
+ \        //   |     ||      ||       |     \\  ||     /  |      |  |\\  V  |\\  V   ||        ||     /
+  \      //    |     ||      ||       |     //  ||––––X   |      |  | \\ V  | \\ V   ––––––    ||––––X 
+   \    //     |     ||      ||       |    //   ||     \  |      |  |  \\V  |  \\V   ||        ||     \
+    \  //      |–––––||  ––––||––––   ––––//    ||     |   \––––/   |  \\V  |  \\V   –––––––   ||     |
+     \//       |–––––||  ––––||––––   ––––//    ||     |     ––     |  \\V  |  \\V   –––––––   ||     |
+==========================================================================================================
+About:
+This is one of my first open source projects and it seems like it is a good fit for open source. Voidrunner is simply my umbrella name for projects that skate the edge of what hasn't been done yet (the void or preknown). That's a bit heavy for some python scripting, and the ascii here could probably be improved, but hey everyone does it how they like it, as do I.
+
+motivation:
+I was psyched about the MIDI Remote Script that came with Maschine, but there is more to be done towards a single controller for both software at once. Ideal functionality would be for this controller script to provide enough functionality and info about Live that one would not have look at the screen while performing 
+
+
+status:
+I have filled in some of the missing functionality and am working on new features for it as well.  
+As of right now, I have set up navigation and 
+The next thing to do is to extend one of the _Framework *Modes classes or create a new one that will allow  
+
+Please see the wiki to discuss or introduce new features.
+
+-matt/misterinterrupt
