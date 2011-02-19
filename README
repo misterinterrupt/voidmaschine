@@ -10,7 +10,8 @@ About:
 This is one of my first open source projects and it seems like it is a good fit for open source. Voidrunner is simply my umbrella name for projects that skate the edge of what hasn't been done yet (the void or preknown). That's a bit heavy for some python scripting, and the ascii here could probably be improved, but hey everyone does it how they like it, as do I.
 
 motivation:
-I was psyched about the MIDI Remote Script that came with Maschine, but there is more to be done towards a single controller for both software at once. Ideal functionality would be for this controller script to provide enough functionality and info about Live that one would not have look at the screen while performing 
+I was psyched about the MIDI Remote Script that came with Maschine, but there is more to be done towards a single controller for both software at once. Ideal functionality would be for this controller script to provide enough functionality and info about Live that one would not have look at the screen while performing.
+I have a blogspot at http://voidrunner.com, where I get into what I have been doing.
 
 
 status:
