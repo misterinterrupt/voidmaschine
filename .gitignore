@@ -1,5 +1,5 @@
 .project
 .pydevproject
 .settings
-__init__.pyc
+*.pyc
 logs
