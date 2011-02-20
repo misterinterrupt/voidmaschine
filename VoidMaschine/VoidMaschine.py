@@ -34,28 +34,29 @@ from _Framework.TransportComponent import TransportComponent # Class encapsulati
 from VoidSessionComponent import VoidSessionComponent
 from ShiftableTransportComponent import ShiftableTransportComponent
 
-'''
+"""
 Originally Created on Nov 7, 2010  :: Matt Howell
 Thanks to Hanz Petrov, Native Instruments, Ableton, Liine
-'''
+"""
 class VoidMaschine(ControlSurface):
-    '''
+    """
     classdocs
-    '''
+    """
     
     def __init__(self, c_instance):
-        '''
+        """
         Constructor
-        '''
+        """
         self._c_instance = c_instance
         ControlSurface.__init__(self, self._c_instance)
-        self._c_instance.log_message('::::::: VoidMaschine')
-        self._c_instance.show_message('VoidMaschine loaded');
+        self.name = 'VoidMaschine'
+        self._c_instance.log_message(('::::::: ' + self.name))
+        self._c_instance.show_message((self.name + ' loaded'));
         self.set_suppress_rebuild_requests(True)
         self._suppress_session_highlight = True
         self._suppress_send_midi = True
-        self._suggested_input_port = 'Maschine Controller'
-        self._suggested_output_port = 'Maschine Controller'
+        self._suggested_input_port = MASCHINE_DEVICE_PORT_NAME
+        self._suggested_output_port = MASCHINE_DEVICE_PORT_NAME
         self._shift_button = None
         self.transport = ShiftableTransportComponent()
         self.transport.name = 'Transport'
@@ -82,8 +83,8 @@ class VoidMaschine(ControlSurface):
         self._void_message()
         
     def _void_message(self):
-        self.sendScreenSysex(self.translateString(('VoidMaschine' + SYSEX_SCREEN_BUFFER_30)), 1)
-        self.sendScreenSysex(self.translateString((SYSEX_SCREEN_BUFFER_30 + 'maschine/ableton')), 2)
+        self.sendScreenSysex(self.translateString(('              VoidMaschine' + SYSEX_SCREEN_BUFFER_15)), 1)
+        self.sendScreenSysex(self.translateString(('Voidrunner.com' + SYSEX_SCREEN_BUFFER_15 + '    maschine/ableton')), 2)
         
         
     def _setup_transport_control(self):
@@ -113,12 +114,16 @@ class VoidMaschine(ControlSurface):
         self.send_midi((240, 0, 66, 89, 69, 247)) #goodbye message in sysex stream
         
     def send_midi(self, midi_event_bytes):
-        """Use this function to send MIDI events through Live to the _real_ MIDI devices
-    that this script is assigned to."""
+        """
+        Use this function to send MIDI events through Live to the _real_ MIDI devices
+        that this script is assigned to.
+        """
         self._c_instance.send_midi(midi_event_bytes)
         
     def translateString(self, text):
-        '\n    Convert a string into a sysex safe string\n    '
+        """
+        Convert a string into a sysex safe string
+        """
         result = ()
         length = len(text)
         for i in range(0, length):
@@ -132,7 +137,9 @@ class VoidMaschine(ControlSurface):
         return result
 
     def sendScreenSysex(self, data, line=1):
-        '\n        Data must be a tuple of bytes, remember only 7-bit data is allowed for sysex\n        '
+        """
+        Data must be a tuple of bytes, remember only 7-bit data is allowed for sysex
+        """
         if(line==1):
             self.send_midi(((SYSEX_SCREEN_BEGIN_LINE_1 + data) + SYSEX_SCREEN_END))
         else:
@@ -162,40 +169,40 @@ class VoidMaschine(ControlSurface):
         self.song().back_to_arranger = False
     
     def update_display(self):
-        '\n        modified this from NI Maschine script :::\n        This function is run every 100ms, so we use it to initiate our Song.current_song_time\n        listener to allow us to process incoming OSC commands as quickly as possible under\n        the current listener scheme.\n        '
+        """
+        modified this from NI Maschine script ::: This function is run every 100ms, 
+        we use it to initiate our Song.current_song_time listener to allow us to process 
+        incoming OSC commands as quickly as possible under the current listener scheme.
+        """
         self.displayTempo()
-        self._updateRate += 1
-        if (((self._updateRate % 2) == 0) and (self._blink == 0)):
-            self.self._update_registered_timer_callbacks()
-            self._blink = 1
-        self._updateRate = 0
-#        self._c_instance.log_message('update_display')
-    
+        
+
     def register_timer_callback(self, ):
         pass
     
     def _update_registered_timer_callbacks():
-        '\n trigger registered callbacks for any classes that need timers but do not inherit from ControlSurface'
+        """
+        trigger registered callbacks for any classes that need timers 
+        but do not inherit from ControlSurface
+        """
         pass
 
     def displayTempo(self):
-        bpmbeatTime = self.song().get_current_beats_song_time()
-        if not self.song().is_playing:
-            if (beatTime.beats != self._LAST_BEAT):
-                self.updateBPMLightOn()
-                #self._blink = True
-#                self._c_instance.log_message(str(beatTime.beats))
+        bpmBeatTime = self.song().get_current_beats_song_time()
+        if self.song().is_playing:
+            if (bpmBeatTime.beats != self._LAST_BEAT):
+                if(bpmBeatTime.beats % 2 != 1):
+                    self.updateBPMLightOn()
             else:
                 self.updateBPMLightOff()
-                #self._blink = False
-        
-        self._LAST_BEAT = beatTime.beats
+                
+        self._LAST_BEAT = bpmBeatTime.beats
             
     def updateBPMLightOn(self):
         self.transport._play_button.turn_on()
-#        self.send_value(MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_TEMPO, MASCHINE_DISPLAY_BPM)
+        #self.send_value(MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_TEMPO, MASCHINE_DISPLAY_BPM)
         
     def updateBPMLightOff(self):
         self.transport._play_button.turn_off()
-#        self.send_value(MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_TEMPO, 0)
+        #self.send_value(MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_TEMPO, 0)
     

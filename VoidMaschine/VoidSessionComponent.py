@@ -1,8 +1,8 @@
-'''
+"""
 Created on Nov 27, 2010
 
 @author: matthewhowell
-'''
+"""
 import sys
 import Live
 from consts import *
@@ -13,14 +13,14 @@ from _Framework.SessionComponent import SessionComponent
 from _Framework.InputControlElement import * # Base class for all classes representing control elements on a controller
 
 class VoidSessionComponent(SessionComponent):
-    '''
+    """
     Extension of _Framework.SessionComponent
-    '''
+    """
 
     def __init__(self):
-        '''
+        """
         Constructor
-        '''
+        """
         self.num_tracks = 4
         self.num_scenes = 4
         SessionComponent.__init__(self, self.num_tracks, self.num_scenes)
