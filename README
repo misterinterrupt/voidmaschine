@@ -16,8 +16,10 @@ I have a blogspot at http://voidrunner.com, where I get into what I have been do
 
 status:
 I have filled in some of the missing functionality and am working on new features for it as well.  
-As of right now, I have set up navigation and 
-The next thing to do is to extend one of the _Framework *Modes classes or create a new one that will allow  
+As of right now, I have set up session navigation, transport controls, session clip launching (but not displaying),
+and the beginning of a screen display functionality.
+The next thing I am working on is extending the _Framework.ButtonElement class to make clip launch status show 
+via blinking/solid/off.  Currently it is only solid/on when a clip is playing..
 
 Please see the wiki to discuss or introduce new features.
 
