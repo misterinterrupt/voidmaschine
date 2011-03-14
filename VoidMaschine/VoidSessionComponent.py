@@ -6,7 +6,6 @@ Created on Nov 27, 2010
 import sys
 import Live
 from consts import *
-from ConfigurableButtonElement import ConfigurableButtonElement 
 from _Framework.ButtonElement import ButtonElement
 from _Framework.ButtonMatrixElement import ButtonMatrixElement # Class representing a 2-dimensional set of buttons
 from _Framework.SessionComponent import SessionComponent
@@ -17,26 +16,24 @@ class VoidSessionComponent(SessionComponent):
     Extension of _Framework.SessionComponent
     """
 
-    def __init__(self):
-        """
-        Constructor
-        """
+    def __init__(self, c_instance):
+        self._c_instance = c_instance
+        self.is_momentary = True
         self.num_tracks = 4
         self.num_scenes = 4
+        self._matrix = None
         SessionComponent.__init__(self, self.num_tracks, self.num_scenes)
-        
         self._setup_session_control()
-        self._setup_clip_control()
+        self.setup_clip_control_matrix()
         
     def _setup_session_control(self):
-        is_momentary = True
         self.set_offsets(0, 0) #(track_offset, scene_offset) Sets the initial offset of the "red box" from top left
-        right_button = ButtonElement(is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, SESSION_NAVIGATE_RIGHT)
-        left_button = ButtonElement(is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, SESSION_NAVIGATE_LEFT)
-        up_button = ButtonElement(is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, SESSION_NAVIGATE_UP)
-        down_button =  ButtonElement(is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, SESSION_NAVIGATE_DOWN)
-        prev_button = ButtonElement(is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, SESSION_SCENE_PREVIOUS)
-        next_button = ButtonElement(is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, SESSION_SCENE_NEXT)
+        right_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, SESSION_NAVIGATE_RIGHT)
+        left_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, SESSION_NAVIGATE_LEFT)
+        up_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, SESSION_NAVIGATE_UP)
+        down_button =  ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, SESSION_NAVIGATE_DOWN)
+        prev_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, SESSION_SCENE_PREVIOUS)
+        next_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, SESSION_SCENE_NEXT)
         right_button.name = 'Bank_Select_Right_Button'
         left_button.name = 'Bank_Select_Left_Button'
         up_button.name = 'Bank_Select_Up_Button'
@@ -50,19 +47,28 @@ class VoidSessionComponent(SessionComponent):
         self.set_track_bank_buttons(right_button, left_button) # (right_button, left_button) This moves the "red box" selection set left & right. We'll put our track selection in Part B of the script, rather than here...
         self.selected_scene().name = 'Selected_Scene'
         self.selected_scene().set_launch_button(ButtonElement(True, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, SESSION_SCENE_LAUNCH))
-    
-    def enable_clip_trigger(self, matrix):
-        self._setup_clip_control()
         
-    def _setup_clip_control(self):
-        self.is_momentary = True
-        self._matrix = ButtonMatrixElement() #was: matrix = ButtonMatrixElement()
+    def setup_clip_control_matrix(self):
+        self._matrix = ButtonMatrixElement(self._c_instance) #was: matrix = ButtonMatrixElement()
         self._matrix.name = 'Button_Matrix' #was: matrix.name = 'Button_Matrix'
-        clip_launch_buttons = [ ConfigurableButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, (index + 48)) for index in range(16) ] #list comprehension to create scene launch buttons
-        for index in range(len(clip_launch_buttons)):
-            clip_launch_buttons[index].name = 'Scene_'+ str(index) + '_Launch_Button'
-            #self.scene(index).set_launch_button(clip_launch_buttons[index])
+        clip_launch_buttons = [ ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, (51 - index)) for index in range(16) ] #list comprehension to create scene launch buttons
+        
+        for scene_index in range(self.num_scenes):
+            scene = self.scene(scene_index)
+            scene.name = 'Scene_' + str(scene_index+1)
+            button_row = []
+            for track_index in range(self.num_tracks):
+                button_index = (self.num_scenes*(scene_index)) + (self.num_tracks - track_index)
+                clip_launch_buttons[button_index - 1].name = 'Clip_Launch_Button' + str(button_index)
+                slot = scene.clip_slot(track_index)
+                slot.name = 'Scene_' + str(scene_index) + 'Clip_Slot_' + str(track_index)
+                slot.set_launch_button(clip_launch_buttons[button_index - 1])
+                slot.set_enabled(True)
+                button_row.append(clip_launch_buttons[button_index - 1])
+            self._matrix.add_row(tuple(button_row))
             
+        return None
+    
     #def _on_timer(self):
         #SessionComponent._on_timer()
         

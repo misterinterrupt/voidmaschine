@@ -4,17 +4,17 @@ from consts import *
 
 from _Framework.ControlSurface import ControlSurface # Central base class for scripts based on the new Framework
 """ All of the Framework files are listed below, but we are only using using some of them in this script (the rest are commented out) """
-from ConfigurableButtonElement import ConfigurableButtonElement 
+#from ConfigurableButtonElement import ConfigurableButtonElement 
 from _Framework.ButtonElement import ButtonElement # Class representing a button a the controller
 from _Framework.ButtonMatrixElement import ButtonMatrixElement # Class representing a 2-dimensional set of buttons
 #from _Framework.ButtonSliderElement import ButtonSliderElement # Class representing a set of buttons used as a slider
-from _Framework.ChannelStripComponent import ChannelStripComponent # Class attaching to the mixer of a given track
+#from _Framework.ChannelStripComponent import ChannelStripComponent # Class attaching to the mixer of a given track
 #from _Framework.ChannelTranslationSelector import ChannelTranslationSelector # Class switches modes by translating the given controls' message channel
 from _Framework.ClipSlotComponent import ClipSlotComponent # Class representing a ClipSlot within Live
-from _Framework.CompoundComponent import CompoundComponent # Base class for classes encompasing other components to form complex components
+#from _Framework.CompoundComponent import CompoundComponent # Base class for classes encompasing other components to form complex components
 from _Framework.ControlElement import ControlElement # Base class for all classes representing control elements on a controller
 from _Framework.ControlSurface import ControlSurface # Central base class for scripts based on the new Framework
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent # Base class for all classes encapsulating functions in Live
+#from _Framework.ControlSurfaceComponent import ControlSurfaceComponent # Base class for all classes encapsulating functions in Live
 #from _Framework.DeviceComponent import DeviceComponent # Class representing a device in Live
 #from _Framework.DisplayDataSource import DisplayDataSource # Data object that is fed with a specific string and notifies its observers
 #from _Framework.EncoderElement import EncoderElement # Class representing a continuous control on the controller
@@ -27,12 +27,12 @@ from _Framework.PhysicalDisplayElement import PhysicalDisplayElement # Class rep
 from _Framework.SceneComponent import SceneComponent # Class representing a scene in Live
 from _Framework.SessionComponent import SessionComponent # Class encompassing several scene to cover a defined section of Live's session
 from _Framework.SessionZoomingComponent import SessionZoomingComponent # Class using a matrix of buttons to choose blocks of clips in the session
-from _Framework.SliderElement import SliderElement # Class representing a slider on the controller
+#from _Framework.SliderElement import SliderElement # Class representing a slider on the controller
 #from _Framework.TrackEQComponent import TrackEQComponent # Class representing a track's EQ, it attaches to the last EQ device in the track
 #from _Framework.TrackFilterComponent import TrackFilterComponent # Class representing a track's filter, attaches to the last filter in the track
 from _Framework.TransportComponent import TransportComponent # Class encapsulating all functions in Live's transport section
 from VoidSessionComponent import VoidSessionComponent
-from ShiftableTransportComponent import ShiftableTransportComponent
+#from ShiftableTransportComponent import ShiftableTransportComponent
 
 """
 Originally Created on Nov 7, 2010  :: Matt Howell
@@ -58,28 +58,27 @@ class VoidMaschine(ControlSurface):
         self._suggested_input_port = MASCHINE_DEVICE_PORT_NAME
         self._suggested_output_port = MASCHINE_DEVICE_PORT_NAME
         self._shift_button = None
-        self.transport = ShiftableTransportComponent()
+        self.transport = TransportComponent()
         self.transport.name = 'Transport'
         self.session = None
         self.session_zoom = None
         self.mixer = None
         self.back_to_arranger_button = None
         self.is_momentary = True
-        self._updateRate = 0
-        self._blink = False
-        self._blinkBeats = 0
         self._LAST_BEAT = 0
-        self._INIT = 0
 
         self._setup_transport_control()
-        self._session = VoidSessionComponent()
+        self._session = VoidSessionComponent(self._c_instance)
         self._session.name = 'Session_Control'
         
+        #self._session_zoom = SessionZoomingComponent(self._session)
+        #self._session_zoom.name = 'Session_Overview'
+        #self._session_zoom.set_button_matrix(self._session._matrix)
+        
+        
         self._set_back_to_arranger_button(ButtonElement(True, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_BACK_TO_ARRANGER))
-        #self._display = PhysicalDisplayElement(56, 8)
-        
-        
         self.set_suppress_rebuild_requests(False)
+        #self._display = PhysicalDisplayElement(56, 8)
         self._void_message()
         
     def _void_message(self):
@@ -113,12 +112,13 @@ class VoidMaschine(ControlSurface):
     def disconnect(self):
         self.send_midi((240, 0, 66, 89, 69, 247)) #goodbye message in sysex stream
         
-    def send_midi(self, midi_event_bytes):
-        """
-        Use this function to send MIDI events through Live to the _real_ MIDI devices
-        that this script is assigned to.
-        """
-        self._c_instance.send_midi(midi_event_bytes)
+    #def send_midi(self, midi_event_bytes):
+        #"""
+        #Use this function to send MIDI events through Live to the _real_ MIDI devices
+        #that this script is assigned to.
+        #"""
+        #assert isinstance(midi_event_bytes, tuple)
+        #self._c_instance.send_midi(midi_event_bytes)
         
     def translateString(self, text):
         """
@@ -140,11 +140,12 @@ class VoidMaschine(ControlSurface):
         """
         Data must be a tuple of bytes, remember only 7-bit data is allowed for sysex
         """
-        if(line==1):
-            self.send_midi(((SYSEX_SCREEN_BEGIN_LINE_1 + data) + SYSEX_SCREEN_END))
-        else:
-            if(line==2):
-                self.send_midi(((SYSEX_SCREEN_BEGIN_LINE_2 + data) + SYSEX_SCREEN_END))
+        pass
+        # if(line==1):
+        #             self._send_midi(((SYSEX_SCREEN_BEGIN_LINE_1 + data) + SYSEX_SCREEN_END))
+        #         else:
+        #             if(line==2):
+        #                 self._send_midi(((SYSEX_SCREEN_BEGIN_LINE_2 + data) + SYSEX_SCREEN_END))
     
     def send_value(self, msg_type, channel, id, value, force_send = False):
         assert (value != None)
@@ -160,7 +161,7 @@ class VoidMaschine(ControlSurface):
             status_byte += MIDI_CC_STATUS
         else:
             assert False
-        self.send_midi((status_byte, data_byte1, data_byte2))
+        #self._send_midi((status_byte, data_byte1, data_byte2))
     
     def song(self):
         return self._c_instance.song()
@@ -193,8 +194,8 @@ class VoidMaschine(ControlSurface):
             if (bpmBeatTime.beats != self._LAST_BEAT):
                 if(bpmBeatTime.beats % 2 != 1):
                     self.updateBPMLightOn()
-            else:
-                self.updateBPMLightOff()
+                else:
+                    self.updateBPMLightOff()
                 
         self._LAST_BEAT = bpmBeatTime.beats
             

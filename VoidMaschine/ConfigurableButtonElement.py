@@ -9,7 +9,7 @@ class ConfigurableButtonElement(ButtonElement):
 
     def __init__(self, is_momentary, msg_type, channel, identifier):
         ButtonElement.__init__(self, is_momentary, msg_type, channel, identifier)
-        self._on_value = 1 #127 for Launchpad #0=off, 1=green, 2=green blink, 3=red, 4=red blink, 5=yellow, 6=yellow blink, 7-127=green
+        self._on_value = 127 #127 for Launchpad #0=off, 1=green, 2=green blink, 3=red, 4=red blink, 5=yellow, 6=yellow blink, 7-127=green
         self._off_value = 0 #4 for Launchpad, 0 for APC40/20
         self._is_enabled = True
         self._is_notifying = False
