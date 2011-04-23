@@ -11,6 +11,8 @@ from _Framework.ButtonMatrixElement import ButtonMatrixElement # Class represent
 from _Framework.SessionComponent import SessionComponent
 from _Framework.InputControlElement import * # Base class for all classes representing control elements on a controller
 
+from BlinkingButtonElement import BlinkingButtonElement
+
 class VoidSessionComponent(SessionComponent):
     """
     Extension of _Framework.SessionComponent
@@ -22,6 +24,7 @@ class VoidSessionComponent(SessionComponent):
         self.num_tracks = 4
         self.num_scenes = 4
         self._matrix = None
+        self._linked_session_instances = None
         SessionComponent.__init__(self, self.num_tracks, self.num_scenes)
         self._setup_session_control()
         self.setup_clip_control_matrix()
@@ -49,9 +52,9 @@ class VoidSessionComponent(SessionComponent):
         self.selected_scene().set_launch_button(ButtonElement(True, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, SESSION_SCENE_LAUNCH))
         
     def setup_clip_control_matrix(self):
-        self._matrix = ButtonMatrixElement(self._c_instance) #was: matrix = ButtonMatrixElement()
+        self._matrix = ButtonMatrixElement() #was: matrix = ButtonMatrixElement()
         self._matrix.name = 'Button_Matrix' #was: matrix.name = 'Button_Matrix'
-        clip_launch_buttons = [ ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, (51 - index)) for index in range(16) ] #list comprehension to create scene launch buttons
+        clip_launch_buttons = [ BlinkingButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, (51 - index)) for index in range(16) ] #list comprehension to create scene launch buttons
         
         for scene_index in range(self.num_scenes):
             scene = self.scene(scene_index)
@@ -60,6 +63,7 @@ class VoidSessionComponent(SessionComponent):
             for track_index in range(self.num_tracks):
                 button_index = (self.num_scenes*(scene_index)) + (self.num_tracks - track_index)
                 clip_launch_buttons[button_index - 1].name = 'Clip_Launch_Button' + str(button_index)
+                clip_launch_buttons[button_index - 1].set_enabled = True
                 slot = scene.clip_slot(track_index)
                 slot.name = 'Scene_' + str(scene_index) + 'Clip_Slot_' + str(track_index)
                 slot.set_launch_button(clip_launch_buttons[button_index - 1])
@@ -68,6 +72,10 @@ class VoidSessionComponent(SessionComponent):
             self._matrix.add_row(tuple(button_row))
             
         return None
+    
+    def update(self):
+        SessionComponent.update(self)
+        # run all callbacks
     
     #def _on_timer(self):
         #SessionComponent._on_timer()
