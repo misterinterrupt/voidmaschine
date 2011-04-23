@@ -66,6 +66,8 @@ class VoidMaschine(ControlSurface):
         self.back_to_arranger_button = None
         self.is_momentary = True
         self._LAST_BEAT = 0
+        self._tempo_light_state = 0
+        self._LAST_TEMPO_STATE = 0
 
         self._setup_transport_control()
         self._session = VoidSessionComponent(self._c_instance)
@@ -78,7 +80,7 @@ class VoidMaschine(ControlSurface):
         
         self._set_back_to_arranger_button(ButtonElement(True, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_BACK_TO_ARRANGER))
         self.set_suppress_rebuild_requests(False)
-        #self._display = PhysicalDisplayElement(56, 8)
+        self._display = PhysicalDisplayElement(56, 8)
         self._void_message()
         
     def _void_message(self):
@@ -112,13 +114,13 @@ class VoidMaschine(ControlSurface):
     def disconnect(self):
         self.send_midi((240, 0, 66, 89, 69, 247)) #goodbye message in sysex stream
         
-    #def send_midi(self, midi_event_bytes):
-        #"""
-        #Use this function to send MIDI events through Live to the _real_ MIDI devices
-        #that this script is assigned to.
-        #"""
-        #assert isinstance(midi_event_bytes, tuple)
-        #self._c_instance.send_midi(midi_event_bytes)
+    def send_midi(self, midi_event_bytes):
+        """
+        Use this function to send MIDI events through Live to the _real_ MIDI devices
+        that this script is assigned to.
+        """
+        assert isinstance(midi_event_bytes, tuple)
+        self._c_instance.send_midi(midi_event_bytes)
         
     def translateString(self, text):
         """
@@ -141,11 +143,11 @@ class VoidMaschine(ControlSurface):
         Data must be a tuple of bytes, remember only 7-bit data is allowed for sysex
         """
         pass
-        # if(line==1):
-        #             self._send_midi(((SYSEX_SCREEN_BEGIN_LINE_1 + data) + SYSEX_SCREEN_END))
-        #         else:
-        #             if(line==2):
-        #                 self._send_midi(((SYSEX_SCREEN_BEGIN_LINE_2 + data) + SYSEX_SCREEN_END))
+        if(line==1):
+            self._send_midi(((SYSEX_SCREEN_BEGIN_LINE_1 + data) + SYSEX_SCREEN_END))
+        else:
+            if(line==2):
+                self._send_midi(((SYSEX_SCREEN_BEGIN_LINE_2 + data) + SYSEX_SCREEN_END))
     
     def send_value(self, msg_type, channel, id, value, force_send = False):
         assert (value != None)
@@ -161,7 +163,7 @@ class VoidMaschine(ControlSurface):
             status_byte += MIDI_CC_STATUS
         else:
             assert False
-        #self._send_midi((status_byte, data_byte1, data_byte2))
+        self._send_midi((status_byte, data_byte1, data_byte2))
     
     def song(self):
         return self._c_instance.song()
@@ -190,14 +192,23 @@ class VoidMaschine(ControlSurface):
 
     def displayTempo(self):
         bpmBeatTime = self.song().get_current_beats_song_time()
+        
         if self.song().is_playing:
             if (bpmBeatTime.beats != self._LAST_BEAT):
-                if(bpmBeatTime.beats % 2 != 1):
-                    self.updateBPMLightOn()
-                else:
-                    self.updateBPMLightOff()
+                self._tempo_light_state = 1
+            else:
+                self._tempo_light_state = 0
+        
+        # when the tempo state changes, change the light
+        if (self._tempo_light_state != self._LAST_TEMPO_STATE):
+            if (self._tempo_light_state == 0):
+                self.updateBPMLightOff()
                 
+            if (self._tempo_light_state == 1):
+                self.updateBPMLightOn()
+        
         self._LAST_BEAT = bpmBeatTime.beats
+        self._LAST_TEMPO_STATE = self._tempo_light_state
             
     def updateBPMLightOn(self):
         self.transport._play_button.turn_on()
