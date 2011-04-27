@@ -1,5 +1,6 @@
 import sys
 import Live
+import time
 from consts import *
 
 from _Framework.ControlSurface import ControlSurface # Central base class for scripts based on the new Framework
@@ -17,7 +18,7 @@ from _Framework.ControlSurface import ControlSurface # Central base class for sc
 #from _Framework.ControlSurfaceComponent import ControlSurfaceComponent # Base class for all classes encapsulating functions in Live
 #from _Framework.DeviceComponent import DeviceComponent # Class representing a device in Live
 #from _Framework.DisplayDataSource import DisplayDataSource # Data object that is fed with a specific string and notifies its observers
-#from _Framework.EncoderElement import EncoderElement # Class representing a continuous control on the controller
+from _Framework.EncoderElement import EncoderElement # Class representing a continuous control on the controller
 from _Framework.InputControlElement import * # Base class for all classes representing control elements on a controller
 #from _Framework.LogicalDisplaySegment import LogicalDisplaySegment # Class representing a specific segment of a display on the controller
 from _Framework.MixerComponent import MixerComponent # Class encompassing several channel strips to form a mixer
@@ -47,11 +48,11 @@ class VoidMaschine(ControlSurface):
         """
         Constructor
         """
-        self._c_instance = c_instance
-        ControlSurface.__init__(self, self._c_instance)
+        ControlSurface.__init__(self, c_instance)
+        self.log_message(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()) + "--------------= VoidMaschine opened =--------------")
         self.name = 'VoidMaschine'
-        self._c_instance.log_message(('::::::: ' + self.name))
-        self._c_instance.show_message((self.name + ' loaded'));
+        self.log_message(('::::::: ' + self.name))
+        self.show_message((self.name + ' loaded'));
         self.set_suppress_rebuild_requests(True)
         self._suppress_session_highlight = True
         self._suppress_send_midi = True
@@ -70,8 +71,10 @@ class VoidMaschine(ControlSurface):
         self._LAST_TEMPO_STATE = 0
 
         self._setup_transport_control()
-        self._session = VoidSessionComponent(self._c_instance)
+        self._session = VoidSessionComponent(c_instance)
         self._session.name = 'Session_Control'
+        
+        self._setup_mixer_control()
         
         #self._session_zoom = SessionZoomingComponent(self._session)
         #self._session_zoom.name = 'Session_Overview'
@@ -84,9 +87,13 @@ class VoidMaschine(ControlSurface):
         self._void_message()
         
     def _void_message(self):
-        self.sendScreenSysex(self.translateString(('              VoidMaschine' + SYSEX_SCREEN_BUFFER_15)), 1)
+        self.sendScreenSysex(self.translateString((SYSEX_SCREEN_BUFFER_15 + 'VoidMaschine' + SYSEX_SCREEN_BUFFER_15)), 1)
         self.sendScreenSysex(self.translateString(('Voidrunner.com' + SYSEX_SCREEN_BUFFER_15 + '    maschine/ableton')), 2)
         
+    def _setup_mixer_control(self):
+        self.mixer = MixerComponent(0, 0, with_eqs=False, with_filters=False)
+        master_volume_control = EncoderElement(MIDI_CC_TYPE, MIXER_CHANNEL, MASTER_VOLUME, Live.MidiMap.MapMode.absolute)
+        self.mixer.master_strip().set_volume_control(master_volume_control)
         
     def _setup_transport_control(self):
         play_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_PLAY)
@@ -120,7 +127,8 @@ class VoidMaschine(ControlSurface):
         that this script is assigned to.
         """
         assert isinstance(midi_event_bytes, tuple)
-        self._c_instance.send_midi(midi_event_bytes)
+        self._send_midi(midi_event_bytes)
+        return True
         
     def translateString(self, text):
         """
@@ -164,9 +172,6 @@ class VoidMaschine(ControlSurface):
         else:
             assert False
         self._send_midi((status_byte, data_byte1, data_byte2))
-    
-    def song(self):
-        return self._c_instance.song()
     
     def back_to_arranger(self, *args, **kwargs):
         self.song().back_to_arranger = False
