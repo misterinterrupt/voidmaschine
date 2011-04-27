@@ -21,7 +21,8 @@ TRANSPORT_TAP_TEMPO = 3 # note repeat / tap tempo
 TRANSPORT_SEEK_FFWD = 6 # next or right arrow
 TRANSPORT_SEEK_RWD = 5 # prev or left arrow
 TRANSPORT_BACK_TO_ARRANGER = 2 # erase
-TRANSPORT_TEMPO = 25
+TRANSPORT_COARSE_TEMPO = 10
+TRANSPORT_FINE_TEMPO = 12 # placeholder, not yet implemented
 
 # MIDI note numbers for the session navigation
 SESSION_NAVIGATE_UP = 16
@@ -35,13 +36,13 @@ SESSION_SCENE_LAUNCH = 8
 #MIDI cc's for mixer
 MIXER_CHANNEL = 7   # 0-indexed 0-15
 MASTER_VOLUME = 9
-MASTER_TEMPO = 10
 MASTER_BOOTH = 11
 
 
 
 MASCHINE_DEVICE_PORT_NAME = 'Maschine Controller'
 
+# mostly the sysex stuff is used and other stuff is leftovers from scavenged code
 STATUS_MASK = 240
 CHAN_MASK = 15
 NOTEON_STATUS = 144

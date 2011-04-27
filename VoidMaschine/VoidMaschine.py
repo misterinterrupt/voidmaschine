@@ -105,6 +105,7 @@ class VoidMaschine(ControlSurface):
         seek_ffwd_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_SEEK_FFWD)
         seek_rwd_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_SEEK_RWD)
         tap_tempo_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_TAP_TEMPO)
+        tempo_control = EncoderElement(MIDI_CC_TYPE, TRANSPORT_CHANNEL, TRANSPORT_COARSE_TEMPO, Live.MidiMap.MapMode.absolute)
         play_button.name = 'Play_Button'
         stop_button.name = 'Stop_Button'
         record_button.name = 'Record_Button'
@@ -115,6 +116,7 @@ class VoidMaschine(ControlSurface):
         self.transport.set_stop_button(stop_button)
         self.transport.set_record_button(record_button)
         self.transport.set_tap_tempo_button(tap_tempo_button)
+        self.transport.set_tempo_control(tempo_control)
         self.transport.set_seek_buttons(seek_ffwd_button, seek_rwd_button)
     
     def _set_back_to_arranger_button(self, button):
