@@ -93,7 +93,10 @@ class VoidMaschine(ControlSurface):
     def _setup_mixer_control(self):
         self.mixer = MixerComponent(0, 0, with_eqs=False, with_filters=False)
         master_volume_control = EncoderElement(MIDI_CC_TYPE, MIXER_CHANNEL, MASTER_VOLUME, Live.MidiMap.MapMode.absolute)
+        booth_volume_control = EncoderElement(MIDI_CC_TYPE, MIXER_CHANNEL, MASTER_BOOTH, Live.MidiMap.MapMode.absolute)
+        self.mixer.set_prehear_volume_control(booth_volume_control)
         self.mixer.master_strip().set_volume_control(master_volume_control)
+        
         
     def _setup_transport_control(self):
         play_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_PLAY)
