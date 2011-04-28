@@ -24,4 +24,14 @@ via blinking/solid/off.  Currently it is only solid/on when a clip is playing, o
 
 Please see the wiki to discuss or introduce new features.
 
+Install:
+install git and run this in your shell:
+git clone git@github.com:misterinterrupt/voidmaschine.git
+
+then you'll need to copy this whole folder called 'voidmaschine' in to your Live.app package directory
+so on Mac os x, right or ctrl click the app and click "Show Package Contents"
+in bash, it's cd /Applications/Live 8.2.2b2/Live.app/ for me
+note I am working with a beta of Live here, though I do not know exactly what that will mean for other versions
+
+
 -matt/misterinterrupt
