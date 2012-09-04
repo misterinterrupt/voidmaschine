@@ -35,196 +35,173 @@ from _Framework.TransportComponent import TransportComponent # Class encapsulati
 from VoidSessionComponent import VoidSessionComponent
 #from ShiftableTransportComponent import ShiftableTransportComponent
 
-"""
-Originally Created on Nov 7, 2010  :: Matt Howell
-Thanks to Hanz Petrov, Native Instruments, Ableton, Liine
-"""
 class VoidMaschine(ControlSurface):
+  """
+  Originally Created on Nov 7, 2010  :: Matt Howell
+  Thanks to Hanz Petrov, Native Instruments, Ableton, Liine
+  """
+  
+
+      
+  def __init__(self, c_instance):
     """
-    classdocs
+    Constructor
+    """
+    ControlSurface.__init__(self, c_instance)
+    self.name = 'VoidMaschine'
+    self.log_message(self.name + " opened =-- @ "+ time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()))
+    self.set_suppress_rebuild_requests(True)
+    self._suppress_session_highlight = False
+    self._suppress_send_midi = True
+    self._suggested_input_port = MASCHINE_DEVICE_PORT_NAME
+    self._suggested_output_port = MASCHINE_DEVICE_PORT_NAME
+    self._shift_button = None
+    self.transport = TransportComponent()
+    self.transport.name = 'Transport'
+    self.session = None
+    self.session_zoom = None
+    self.mixer = None
+    self.back_to_arranger_button = None
+    self.is_momentary = True
+    self.bpmBeatTime = 0
+    self.lastBeat = 0
+    
+    self._setup_transport_control()
+    self._session = VoidSessionComponent(c_instance)
+    self._session.name = 'Session_Control'
+    
+    self._setup_mixer_control()
+    
+    #self._session_zoom = SessionZoomingComponent(self._session)
+    #self._session_zoom.name = 'Session_Overview'
+    #self._session_zoom.set_button_matrix(self._session._matrix)
+    
+    self._set_back_to_arranger_button(ButtonElement(True, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_BACK_TO_ARRANGER))
+    self.set_suppress_rebuild_requests(False)
+    self._display = PhysicalDisplayElement(56, 8)
+    self._void_message()
+    self._register_timer_callback(self.update_controller)
+    self._register_timer_callback(self.updateTempo)
+    self._register_timer_callback(self.onTempoChange)
+    
+  def _void_message(self):
+    self.sendScreenSysex(self.translateString((SYSEX_SCREEN_BUFFER_15 + 'VoidMaschine' + SYSEX_SCREEN_BUFFER_15)), 1)
+    self.sendScreenSysex(self.translateString(('Voidrunner.com' + SYSEX_SCREEN_BUFFER_15 + '    maschine/ableton')), 2)
+
+  def _setup_mixer_control(self):
+    self.mixer = MixerComponent(0, 0, with_eqs=False, with_filters=False)
+    master_volume_control = EncoderElement(MIDI_CC_TYPE, MIXER_CHANNEL, MASTER_VOLUME, Live.MidiMap.MapMode.absolute)
+    booth_volume_control = EncoderElement(MIDI_CC_TYPE, MIXER_CHANNEL, MASTER_BOOTH, Live.MidiMap.MapMode.absolute)
+    self.mixer.set_prehear_volume_control(booth_volume_control)
+    self.mixer.master_strip().set_volume_control(master_volume_control)
+
+  def _setup_transport_control(self):
+    play_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_PLAY)
+    stop_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_STOP)
+    record_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_RECORD)
+    seek_ffwd_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_SEEK_FFWD)
+    seek_rwd_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_SEEK_RWD)
+    tap_tempo_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_TAP_TEMPO)
+    tempo_control = EncoderElement(MIDI_CC_TYPE, TRANSPORT_CHANNEL, TRANSPORT_COARSE_TEMPO, Live.MidiMap.MapMode.absolute)
+    play_button.name = 'Play_Button'
+    stop_button.name = 'Stop_Button'
+    record_button.name = 'Record_Button'
+    seek_ffwd_button.name = 'Seek_FFWD_Button'
+    seek_rwd_button.name = 'Seek_RWD_Button'
+    tap_tempo_button.name = 'Tap_Tempo_Button'
+    self.transport.set_play_button(play_button)
+    self.transport.set_stop_button(stop_button)
+    self.transport.set_record_button(record_button)
+    self.transport.set_tap_tempo_button(tap_tempo_button)
+    self.transport.set_tempo_control(tempo_control)
+    self.transport.set_seek_buttons(seek_ffwd_button, seek_rwd_button)
+
+  def _set_back_to_arranger_button(self, button):
+    button.add_value_listener(self.back_to_arranger)
+    self.back_to_arranger_button = button
+
+  def disconnect(self):
+    self.send_midi((240, 0, 66, 89, 69, 247)) #goodbye message in sysex stream
+  
+  def send_midi(self, midi_event_bytes):
+    """
+    Use this function to send MIDI events through Live to the _real_ MIDI devices
+    that this script is assigned to.
+    """
+    assert isinstance(midi_event_bytes, tuple)
+    self._send_midi(midi_event_bytes)
+    return True
+
+  def translateString(self, text):
+    """
+    Convert a string into a sysex safe string
+    """
+    result = ()
+    length = len(text)
+    for i in range(0, length):
+      charCode = ord(text[i])
+      if (charCode < 32):
+        charCode = 32
+      elif (charCode > 127):
+        charCode = 127
+      result = (result + (charCode,))
+    
+    return result
+  
+  def sendScreenSysex(self, data, line=1):
+    """
+    Data must be a tuple of bytes, remember only 7-bit data is allowed for sysex
+    """
+    if not data:
+      pass
+    if(line==1):
+        self._send_midi(((SYSEX_SCREEN_BEGIN_LINE_1 + data) + SYSEX_SCREEN_END))
+    else:
+        if(line==2):
+            self._send_midi(((SYSEX_SCREEN_BEGIN_LINE_2 + data) + SYSEX_SCREEN_END))
+  
+  def send_value(self, msg_type, channel, id, value, force_send = False):
+    assert (value != None)
+    assert isinstance(value, int)
+    assert (value in range(128))
+    
+    data_byte1 = id
+    data_byte2 = value
+    status_byte = channel
+    if (msg_type == MIDI_NOTE_TYPE):
+      status_byte += MIDI_NOTE_ON_STATUS
+    elif (msg_type == MIDI_CC_TYPE):
+      status_byte += MIDI_CC_STATUS
+    else:
+        assert False
+    self._send_midi((status_byte, data_byte1, data_byte2))
+  
+  def back_to_arranger(self, *args, **kwargs):
+    self.song().back_to_arranger = False
+  
+  def update_controller(self):
+    """
+    controller event loop
+    this may also update every 100 miliseconds.
+    decoupling the data updates from live and the controller communication
+    may help keep latency to a minimum.
     """
     
-    def __init__(self, c_instance):
-        """
-        Constructor
-        """
-        ControlSurface.__init__(self, c_instance)
-        self.log_message(time.strftime("%d.%m.%Y %H:%M:%S", time.localtime()) + "--------------= VoidMaschine opened =--------------")
-        self.name = 'VoidMaschine'
-        self.log_message(('::::::: ' + self.name))
-        self.show_message((self.name + ' loaded'));
-        self.set_suppress_rebuild_requests(True)
-        self._suppress_session_highlight = True
-        self._suppress_send_midi = True
-        self._suggested_input_port = MASCHINE_DEVICE_PORT_NAME
-        self._suggested_output_port = MASCHINE_DEVICE_PORT_NAME
-        self._shift_button = None
-        self.transport = TransportComponent()
-        self.transport.name = 'Transport'
-        self.session = None
-        self.session_zoom = None
-        self.mixer = None
-        self.back_to_arranger_button = None
-        self.is_momentary = True
-        self._LAST_BEAT = 0
-        self._tempo_light_state = 0
-        self._LAST_TEMPO_STATE = 0
+  def onTempoChange(self):      
+    self.bpmBeatTime = self.song().get_current_beats_song_time()
+  
+  def updateTempo(self):                          
+    if self.song().is_playing:
+      if (self.bpmBeatTime.beats > self.lastBeat):
+        self.updateBPMLightOff()
+      else:
+        self.updateBPMLightOn()
+  
+  def updateBPMLightOn(self):  
+    self.transport._play_button.turn_on()
+    #self.send_value(MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_TEMPO, MASCHINE_DISPLAY_BPM)
 
-        self._setup_transport_control()
-        self._session = VoidSessionComponent(c_instance)
-        self._session.name = 'Session_Control'
-        
-        self._setup_mixer_control()
-        
-        #self._session_zoom = SessionZoomingComponent(self._session)
-        #self._session_zoom.name = 'Session_Overview'
-        #self._session_zoom.set_button_matrix(self._session._matrix)
-        
-        
-        self._set_back_to_arranger_button(ButtonElement(True, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_BACK_TO_ARRANGER))
-        self.set_suppress_rebuild_requests(False)
-        self._display = PhysicalDisplayElement(56, 8)
-        self._void_message()
-        
-    def _void_message(self):
-        self.sendScreenSysex(self.translateString((SYSEX_SCREEN_BUFFER_15 + 'VoidMaschine' + SYSEX_SCREEN_BUFFER_15)), 1)
-        self.sendScreenSysex(self.translateString(('Voidrunner.com' + SYSEX_SCREEN_BUFFER_15 + '    maschine/ableton')), 2)
-        
-    def _setup_mixer_control(self):
-        self.mixer = MixerComponent(0, 0, with_eqs=False, with_filters=False)
-        master_volume_control = EncoderElement(MIDI_CC_TYPE, MIXER_CHANNEL, MASTER_VOLUME, Live.MidiMap.MapMode.absolute)
-        booth_volume_control = EncoderElement(MIDI_CC_TYPE, MIXER_CHANNEL, MASTER_BOOTH, Live.MidiMap.MapMode.absolute)
-        self.mixer.set_prehear_volume_control(booth_volume_control)
-        self.mixer.master_strip().set_volume_control(master_volume_control)
-        
-        
-    def _setup_transport_control(self):
-        play_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_PLAY)
-        stop_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_STOP)
-        record_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_RECORD)
-        seek_ffwd_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_SEEK_FFWD)
-        seek_rwd_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_SEEK_RWD)
-        tap_tempo_button = ButtonElement(self.is_momentary, MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_TAP_TEMPO)
-        tempo_control = EncoderElement(MIDI_CC_TYPE, TRANSPORT_CHANNEL, TRANSPORT_COARSE_TEMPO, Live.MidiMap.MapMode.absolute)
-        play_button.name = 'Play_Button'
-        stop_button.name = 'Stop_Button'
-        record_button.name = 'Record_Button'
-        seek_ffwd_button.name = 'Seek_FFWD_Button'
-        seek_rwd_button.name = 'Seek_RWD_Button'
-        tap_tempo_button.name = 'Tap_Tempo_Button'
-        self.transport.set_play_button(play_button)
-        self.transport.set_stop_button(stop_button)
-        self.transport.set_record_button(record_button)
-        self.transport.set_tap_tempo_button(tap_tempo_button)
-        self.transport.set_tempo_control(tempo_control)
-        self.transport.set_seek_buttons(seek_ffwd_button, seek_rwd_button)
-    
-    def _set_back_to_arranger_button(self, button):
-        button.add_value_listener(self.back_to_arranger)
-        self.back_to_arranger_button = button
-    
-    def disconnect(self):
-        self.send_midi((240, 0, 66, 89, 69, 247)) #goodbye message in sysex stream
-        
-    def send_midi(self, midi_event_bytes):
-        """
-        Use this function to send MIDI events through Live to the _real_ MIDI devices
-        that this script is assigned to.
-        """
-        assert isinstance(midi_event_bytes, tuple)
-        self._send_midi(midi_event_bytes)
-        return True
-        
-    def translateString(self, text):
-        """
-        Convert a string into a sysex safe string
-        """
-        result = ()
-        length = len(text)
-        for i in range(0, length):
-            charCode = ord(text[i])
-            if (charCode < 32):
-                charCode = 32
-            elif (charCode > 127):
-                charCode = 127
-            result = (result + (charCode,))
-    
-        return result
-
-    def sendScreenSysex(self, data, line=1):
-        """
-        Data must be a tuple of bytes, remember only 7-bit data is allowed for sysex
-        """
-        pass
-        if(line==1):
-            self._send_midi(((SYSEX_SCREEN_BEGIN_LINE_1 + data) + SYSEX_SCREEN_END))
-        else:
-            if(line==2):
-                self._send_midi(((SYSEX_SCREEN_BEGIN_LINE_2 + data) + SYSEX_SCREEN_END))
-    
-    def send_value(self, msg_type, channel, id, value, force_send = False):
-        assert (value != None)
-        assert isinstance(value, int)
-        assert (value in range(128))
-        
-        data_byte1 = id
-        data_byte2 = value
-        status_byte = channel
-        if (msg_type == MIDI_NOTE_TYPE):
-            status_byte += MIDI_NOTE_ON_STATUS
-        elif (msg_type == MIDI_CC_TYPE):
-            status_byte += MIDI_CC_STATUS
-        else:
-            assert False
-        self._send_midi((status_byte, data_byte1, data_byte2))
-    
-    def back_to_arranger(self, *args, **kwargs):
-        self.song().back_to_arranger = False
-    
-    def update_display(self):
-        """
-        modified this from NI Maschine script ::: This function is run every 100ms, 
-        we use it to initiate our Song.current_song_time listener to allow us to process 
-        incoming OSC commands as quickly as possible under the current listener scheme.
-        """
-        self.displayTempo()
-        
-
-    def register_timer_callback(self, ):
-        pass
-    
-    def _update_registered_timer_callbacks():
-        """
-        trigger registered callbacks for any classes that need timers 
-        but do not inherit from ControlSurface
-        """
-        pass
-
-    def displayTempo(self):
-        bpmBeatTime = self.song().get_current_beats_song_time()
-        
-        if self.song().is_playing:
-            if (bpmBeatTime.beats != self._LAST_BEAT):
-                self._tempo_light_state = 1
-            else:
-                self._tempo_light_state = 0
-        
-        # when the tempo state changes, change the light
-        if (self._tempo_light_state != self._LAST_TEMPO_STATE):
-            if (self._tempo_light_state == 0):
-                self.updateBPMLightOff()
-                
-            if (self._tempo_light_state == 1):
-                self.updateBPMLightOn()
-        
-        self._LAST_BEAT = bpmBeatTime.beats
-        self._LAST_TEMPO_STATE = self._tempo_light_state
-            
-    def updateBPMLightOn(self):
-        self.transport._play_button.turn_on()
-        #self.send_value(MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_TEMPO, MASCHINE_DISPLAY_BPM)
-        
-    def updateBPMLightOff(self):
-        self.transport._play_button.turn_off()
-        #self.send_value(MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_TEMPO, 0)
+  def updateBPMLightOff(self): 
+    self.transport._play_button.turn_off()
+    #self.send_value(MIDI_NOTE_TYPE, TRANSPORT_CHANNEL, TRANSPORT_TEMPO, 0)
     

@@ -8,7 +8,6 @@ class BlinkingButtonElement (ButtonElement):
     
     def __init__(self, is_momentary, msg_type, channel, identifier):
         ButtonElement.__init__(self, is_momentary, msg_type, channel, identifier)
-        self._is_blinking = False
         self._is_enabled = False
 
 
